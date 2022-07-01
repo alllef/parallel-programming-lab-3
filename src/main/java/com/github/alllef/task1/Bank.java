@@ -1,5 +1,7 @@
 package com.github.alllef.task1;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 class Bank {
     public static final int NTEST = 10000;
     private final int[] accounts;
@@ -13,12 +15,12 @@ class Bank {
         ntransacts = 0;
     }
 
-    public void transfer(int from, int to, int amount) {
-        accounts[from] -= amount;
-        accounts[to] += amount;
-        ntransacts++;
-        if (ntransacts % NTEST == 0)
-            test();
+    public synchronized void transfer(int from, int to, int amount) {
+            accounts[from] -= amount;
+            accounts[to] += amount;
+            ntransacts++;
+            if (ntransacts % NTEST == 0)
+                test();
     }
 
     public void test() {
