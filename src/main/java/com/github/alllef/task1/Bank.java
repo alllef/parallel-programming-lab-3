@@ -1,11 +1,20 @@
 package com.github.alllef.task1;
 
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
 class Bank {
     public static final int NTEST = 10000;
     private final int[] accounts;
     private long ntransacts = 0;
+    private ReentrantLock reentrantLock;
+    private Condition notExchangedCondition;
+    private boolean isExchanged = false;
 
     public Bank(int n, int initialBalance) {
+        reentrantLock = new ReentrantLock();
+        notExchangedCondition = reentrantLock.newCondition();
+        reentrantLock = new ReentrantLock();
         accounts = new int[n];
         int i;
         for (i = 0; i < accounts.length; i++)
@@ -14,11 +23,23 @@ class Bank {
     }
 
     public void transfer(int from, int to, int amount) {
-        accounts[from] -= amount;
-        accounts[to] += amount;
-        ntransacts++;
-        if (ntransacts % NTEST == 0)
-            test();
+        reentrantLock.lock();
+        try {
+           // while (!isExchanged)
+            //    notExchangedCondition.await();
+            isExchanged = false;
+            accounts[from] -= amount;
+            accounts[to] += amount;
+            ntransacts++;
+            if (ntransacts % NTEST == 0)
+                test();
+            isExchanged = true;
+         //   notExchangedCondition.signalAll();
+       // } catch (InterruptedException e) {
+     //       throw new RuntimeException(e);
+        } finally {
+            reentrantLock.unlock();
+        }
     }
 
     public void test() {
