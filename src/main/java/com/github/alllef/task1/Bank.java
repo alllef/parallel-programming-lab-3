@@ -9,11 +9,13 @@ class Bank {
     private long ntransacts = 0;
     private ReentrantLock reentrantLock;
     private Condition notExchangedCondition;
+    private Condition exchangedCondition;
     private boolean isExchanged = false;
 
     public Bank(int n, int initialBalance) {
         reentrantLock = new ReentrantLock();
         notExchangedCondition = reentrantLock.newCondition();
+        exchangedCondition = reentrantLock.newCondition();
         reentrantLock = new ReentrantLock();
         accounts = new int[n];
         int i;
@@ -22,7 +24,7 @@ class Bank {
         ntransacts = 0;
     }
 
-    public  void transfer(int from, int to, int amount) {
+    public void transfer(int from, int to, int amount) {
         reentrantLock.lock();
         try {
             while (isExchanged)
@@ -32,7 +34,7 @@ class Bank {
             accounts[to] += amount;
             ntransacts++;
             isExchanged = true;
-            notExchangedCondition.signalAll();
+            exchangedCondition.signalAll();
         } catch (InterruptedException e) {
             e.printStackTrace(); // throw new RuntimeException(e);
         } finally {
@@ -40,11 +42,11 @@ class Bank {
         }
     }
 
-    public  void testWithCondition(){
+    public void testWithCondition() {
         reentrantLock.lock();
         try {
             while (!isExchanged)
-                notExchangedCondition.await();
+                exchangedCondition.await();
 
             if (ntransacts % NTEST == 0)
                 test();
