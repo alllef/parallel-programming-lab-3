@@ -22,21 +22,36 @@ class Bank {
         ntransacts = 0;
     }
 
-    public void transfer(int from, int to, int amount) {
+    public  void transfer(int from, int to, int amount) {
         reentrantLock.lock();
         try {
-           // while (!isExchanged)
-            //    notExchangedCondition.await();
-            isExchanged = false;
+            while (isExchanged)
+                notExchangedCondition.await();
+
             accounts[from] -= amount;
             accounts[to] += amount;
             ntransacts++;
+            isExchanged = true;
+            notExchangedCondition.signalAll();
+        } catch (InterruptedException e) {
+            e.printStackTrace(); // throw new RuntimeException(e);
+        } finally {
+            reentrantLock.unlock();
+        }
+    }
+
+    public  void testWithCondition(){
+        reentrantLock.lock();
+        try {
+            while (!isExchanged)
+                notExchangedCondition.await();
+
             if (ntransacts % NTEST == 0)
                 test();
-            isExchanged = true;
-         //   notExchangedCondition.signalAll();
-       // } catch (InterruptedException e) {
-     //       throw new RuntimeException(e);
+            isExchanged = false;
+            notExchangedCondition.signalAll();
+        } catch (InterruptedException e) {
+            e.printStackTrace(); // throw new RuntimeException(e);
         } finally {
             reentrantLock.unlock();
         }
