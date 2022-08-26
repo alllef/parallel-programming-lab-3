@@ -7,16 +7,9 @@ class Bank {
     public static final int NTEST = 10000;
     private final int[] accounts;
     private long ntransacts = 0;
-    private ReentrantLock reentrantLock;
-    private Condition notExchangedCondition;
-    private Condition exchangedCondition;
     private boolean isExchanged = false;
 
     public Bank(int n, int initialBalance) {
-        reentrantLock = new ReentrantLock();
-        notExchangedCondition = reentrantLock.newCondition();
-        exchangedCondition = reentrantLock.newCondition();
-        reentrantLock = new ReentrantLock();
         accounts = new int[n];
         int i;
         for (i = 0; i < accounts.length; i++)
@@ -24,39 +17,20 @@ class Bank {
         ntransacts = 0;
     }
 
-    public void transfer(int from, int to, int amount) {
-        reentrantLock.lock();
-        try {
-            while (isExchanged)
-                notExchangedCondition.await();
-
-            accounts[from] -= amount;
-            accounts[to] += amount;
-            ntransacts++;
-            isExchanged = true;
-            exchangedCondition.signalAll();
-        } catch (InterruptedException e) {
-            e.printStackTrace(); // throw new RuntimeException(e);
-        } finally {
-            reentrantLock.unlock();
+    public synchronized void transfer(int from, int to, int amount)  {
+        while (accounts[from] < amount) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
-    }
-
-    public void testWithCondition() {
-        reentrantLock.lock();
-        try {
-            while (!isExchanged)
-                exchangedCondition.await();
-
-            if (ntransacts % NTEST == 0)
-                test();
-            isExchanged = false;
-            notExchangedCondition.signalAll();
-        } catch (InterruptedException e) {
-            e.printStackTrace(); // throw new RuntimeException(e);
-        } finally {
-            reentrantLock.unlock();
-        }
+        accounts[from] -= amount;
+        accounts[to] += amount;
+        ntransacts++;
+        notifyAll();
+        if (ntransacts % NTEST == 0)
+            test();
     }
 
     public void test() {

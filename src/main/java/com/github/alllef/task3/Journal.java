@@ -14,5 +14,6 @@ public class Journal {
         int randomGroup = new Random().nextInt(groups.size());
         Group group = groups.get(randomGroup);
         group.getMarks().add(mark);
+        System.out.println("Mark "+mark + "has been added to group "+group.getName()+ " by thread "+Thread.currentThread().getName());
     }
 }
